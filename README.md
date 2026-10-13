@@ -19,22 +19,22 @@ Everything template-related is optional and only applied when the template folde
 
 ## Setup
 
-Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/).
+Requires [mise](https://mise.jdx.dev/). It installs the pinned Python and [uv](https://docs.astral.sh/uv/) from `mise.toml`.
 
 ```bash
-uv sync --group dev
-uv run playwright install chromium   # first run only; the app also does this on demand
+mise install
+mise run setup   # uv sync + Playwright Chromium (first run only; the app also does this on demand)
 ```
 
 ## Usage
 
 ```bash
 # GUI
-uv run notion-prettify-gui
+mise run gui
 
 # CLI
-uv run notion-prettify export.zip -t path/to/template --title "My Document"
-uv run notion-prettify --help
+mise run cli -- export.zip -t path/to/template --title "My Document"
+mise run cli -- --help
 ```
 
 From Python:
@@ -62,16 +62,17 @@ prettify(input_file="export.zip", output="my-document.pdf", template="path/to/te
 ## Development
 
 ```bash
-uv run pytest
-uv run ruff check src tests
-uv run mypy src
+mise run test
+mise run lint
+mise run typecheck
+mise run check   # all three
 ```
 
 ## Building the desktop app
 
 ```bash
-bash scripts/build_macos.sh      # dist/NotionPrettify.app
-scripts\build_windows.bat        # dist\NotionPrettify.exe
+mise run build:macos     # dist/NotionPrettify.app
+mise run build:windows   # dist\NotionPrettify.exe
 ```
 
 ## Project structure

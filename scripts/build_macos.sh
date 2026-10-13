@@ -8,7 +8,7 @@
 #   dist/NotionPrettify.app   — drag this into /Applications to install
 #
 # Prerequisites:
-#   - Python 3.x with this project and dependencies installed  (pip install -e .)
+#   - uv (https://docs.astral.sh/uv/) installed and on PATH, or run via `mise run build:macos`
 
 set -euo pipefail
 
@@ -17,20 +17,14 @@ ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
 cd "$ROOT_DIR"
 
-PYTHON="${PYTHON:-python3}"
-
-echo "==> Ensuring project dependencies are installed..."
-"$PYTHON" -m pip install --quiet --upgrade pip
-"$PYTHON" -m pip install --quiet --upgrade -e .
-
-echo "==> Installing / upgrading PyInstaller..."
-"$PYTHON" -m pip install --quiet --upgrade pyinstaller
+echo "==> Syncing dependencies (including build group)..."
+uv sync --group build
 
 echo "==> Cleaning previous build artefacts..."
 rm -rf build dist
 
 echo "==> Building NotionPrettify.app..."
-"$PYTHON" -m PyInstaller NotionPrettify.spec --noconfirm
+uv run pyinstaller NotionPrettify.spec --noconfirm
 
 APP_PATH="dist/NotionPrettify.app"
 

@@ -1,0 +1,42 @@
+[tools]
+python = "3.14"
+uv = "latest"
+
+[settings]
+python.uv_venv_auto = true
+
+[tasks.setup]
+description = "Install dependencies and the Playwright Chromium browser"
+run = [
+  "uv sync --group dev",
+  "uv run playwright install chromium",
+]
+
+[tasks.gui]
+description = "Launch the desktop app"
+run = "uv run notion-prettify-gui"
+
+[tasks.cli]
+description = "Run the CLI (pass arguments after --)"
+run = "uv run notion-prettify"
+
+[tasks.test]
+run = "uv run pytest"
+
+[tasks.lint]
+run = "uv run ruff check src tests"
+
+[tasks.typecheck]
+run = "uv run mypy src"
+
+[tasks.check]
+description = "Run tests, lint and type checks"
+depends = ["test", "lint", "typecheck"]
+
+[tasks."build:macos"]
+description = "Build dist/NotionPrettify.app"
+run = "bash scripts/build_macos.sh"
+
+[tasks."build:windows"]
+description = "Build dist\\NotionPrettify.exe"
+run = "cmd /c scripts\\build_windows.bat"
