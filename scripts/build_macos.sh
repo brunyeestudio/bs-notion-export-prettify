@@ -23,6 +23,15 @@ uv sync --group build
 echo "==> Cleaning previous build artefacts..."
 rm -rf build dist
 
+echo "==> Generating app icon from assets/icon.png..."
+ICONSET="build/icon.iconset"
+mkdir -p "$ICONSET"
+for size in 16 32 128 256 512; do
+    sips -z "$size" "$size" assets/icon.png --out "$ICONSET/icon_${size}x${size}.png" >/dev/null
+    sips -z "$((size * 2))" "$((size * 2))" assets/icon.png --out "$ICONSET/icon_${size}x${size}@2x.png" >/dev/null
+done
+iconutil -c icns "$ICONSET" -o build/icon.icns
+
 echo "==> Building NotionPrettify.app..."
 uv run pyinstaller NotionPrettify.spec --noconfirm
 
