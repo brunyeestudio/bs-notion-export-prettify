@@ -3,10 +3,11 @@ import shutil
 import tempfile
 import zipfile
 from importlib.metadata import version
-from os import listdir, path
+from os import path
 
 from .args import parse_args, resolve_template_path
 from .html_templator import HtmlTemplator
+from .notion_export import copy_referenced_assets, find_export_html
 from .notion_html_manipulator import NotionHtmlManipulator
 from .pdf_maker import PdfMaker
 from .print_color import green, orange, red
@@ -49,22 +50,16 @@ def prettify(
             with zipfile.ZipFile(input_file, "r") as zip_ref:
                 zip_ref.extractall(temp_dir)
         elif input_file.endswith(".html"):
-            logging.debug("Copying HTML file to temporary directory")
+            logging.debug("Copying HTML file and its assets to temporary directory")
             shutil.copy(input_file, temp_dir)
-            input_asset_folder = input_file.replace(".html", "")
-            if path.exists(input_asset_folder):
-                shutil.copytree(
-                    input_asset_folder,
-                    path.join(temp_dir, path.basename(input_asset_folder)),
-                )
+            copy_referenced_assets(input_file, temp_dir)
         else:
             red("[ERROR] Unsupported input file format")
             raise ValueError(f"Unsupported input file format: {input_file}")
 
-        html_files = [f for f in listdir(temp_dir) if f.endswith(".html")]
-        if len(html_files) != 1:
-            raise ValueError("Expected one HTML file in the zip file")
-        html_file = path.join(temp_dir, html_files[0])
+        html_file = find_export_html(temp_dir)
+        # Keep the working copy next to the source so relative asset links resolve
+        work_dir = path.dirname(html_file)
 
         # 0. Determine if there will be a cover page
         with_cover_page = cover_page and (
@@ -135,8 +130,12 @@ def prettify(
             else:
                 orange("[SKIP] No HTML title template found. Keeping original header")
 
+        # 1.f. - Render mermaid diagrams
+        green("[PROC] Rendering mermaid diagrams (if any)")
+        manipulator.render_mermaid_diagrams()
+
         # 1.x. - Save to file
-        updated_html_path = path.join(temp_dir, "updated_doc.html")
+        updated_html_path = path.join(work_dir, "updated_doc.html")
         with open(updated_html_path, "w", encoding="utf-8") as f:
             f.write(manipulator.get_html())
             logging.debug("Updated HTML saved to %s", updated_html_path)
@@ -203,7 +202,7 @@ def prettify(
             dict(
                 title=doc_metadata["title"],
                 creator="Notion",
-                producer=f"bs-notion-export-prettify v{version('bs-notion-export-prettify')}",
+                producer=f"notion-prettify v{version('notion-prettify')}",
                 author=doc_metadata["author"],
                 subject=doc_metadata["description"],
             )

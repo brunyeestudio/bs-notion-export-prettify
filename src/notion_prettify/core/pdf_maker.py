@@ -1,7 +1,9 @@
 import logging
 from os import path
+from pathlib import Path
 
 import fitz  # PyMuPDF
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
 from .browser_setup import ensure_chromium_installed
@@ -15,10 +17,18 @@ _DEFAULT_PRINT_READY_NETWORK_TIMEOUT_MS = 60_000
 
 
 def _wait_for_print_ready(page, *, network_timeout_ms: int) -> None:
-    """Block until the page network is idle and web fonts have finished loading."""
+    """Block until the page network is idle, web fonts have loaded and mermaid has rendered."""
     page.wait_for_load_state("networkidle", timeout=network_timeout_ms)
     page.evaluate("() => document.fonts.ready")
-    logging.debug("Print-ready: networkidle and document.fonts.ready")
+    try:
+        page.wait_for_function(
+            "() => !document.querySelector('.mermaid')"
+            " || document.documentElement.dataset.mermaidRendered === 'true'",
+            timeout=network_timeout_ms,
+        )
+    except PlaywrightTimeoutError:
+        logging.warning("Mermaid diagrams did not finish rendering; printing as-is")
+    logging.debug("Print-ready: networkidle, document.fonts.ready and mermaid")
 
 
 class PdfMaker:
@@ -38,7 +48,7 @@ class PdfMaker:
             page = browser.new_page()
 
             # Navigate to the page (load first; @import / link fonts may continue after DOMContentLoaded)
-            page.goto(f"file://{html_input_path}", wait_until="load")
+            page.goto(Path(html_input_path).as_uri(), wait_until="load")
             _wait_for_print_ready(page, network_timeout_ms=_DEFAULT_PRINT_READY_NETWORK_TIMEOUT_MS)
 
             # Add PDF-specific overwrites

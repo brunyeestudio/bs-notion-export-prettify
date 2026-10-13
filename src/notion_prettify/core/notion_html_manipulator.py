@@ -1,9 +1,28 @@
 from bs4 import BeautifulSoup
 
+# Renders every <div class="mermaid"> in place, then flags the document so the
+# PDF capture knows it can proceed (see PdfMaker). suppressErrors keeps one bad
+# diagram from stopping the others; a failed diagram shows mermaid's own error.
+MERMAID_SCRIPT = """
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.esm.min.mjs";
+mermaid.initialize({ startOnLoad: false, suppressErrors: true });
+try {
+  await mermaid.run();
+} finally {
+  document.documentElement.dataset.mermaidRendered = "true";
+}
+"""
+
+# max-height keeps tall diagrams on one page: the SVG scales down to fit
+MERMAID_CSS = """
+.mermaid { margin: 1.25em 0; text-align: center; page-break-inside: avoid; }
+.mermaid svg { max-width: 100%; max-height: 180mm; height: auto; }
+"""
+
 
 class NotionHtmlManipulator:
     def __init__(self, html_path):
-        with open(html_path, "r", encoding="utf-8") as file:
+        with open(html_path, encoding="utf-8") as file:
             html_content = file.read()
             self.soup = BeautifulSoup(html_content, "html.parser")
 
@@ -127,6 +146,26 @@ class NotionHtmlManipulator:
             else:
                 if parent_to_remove:
                     parent_to_remove.extract()
+
+    def render_mermaid_diagrams(self):
+        # Notion exports mermaid blocks as plain code; swap them for containers
+        # that mermaid.js renders into SVG when the page loads
+        code_blocks = self.page_body.find_all(
+            "pre", attrs={"data-notion-code-syntax": "mermaid"}
+        )
+        if not code_blocks:
+            return
+
+        for code_block in code_blocks:
+            diagram = self.soup.new_tag("div", attrs={"class": "mermaid"})
+            diagram.string = code_block.get_text()
+            code_block.replace_with(diagram)
+
+        self.add_css_overwrites(MERMAID_CSS)
+
+        script = self.soup.new_tag("script", type="module")
+        script.string = MERMAID_SCRIPT
+        self.soup.body.append(script)
 
     def get_heading_map(self) -> dict:
         # Extracts the id of all headings and maps them to their level

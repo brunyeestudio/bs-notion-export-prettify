@@ -1,23 +1,63 @@
-[tool.poetry]
-name = "bs-notion-export-prettify"
-version = "1.4.5"
-description = ""
-authors = ["Fabre Lambeau <fabre.lambeau@gmail.com>", "Ben Brunyee <ben@brunyeestudio.com>"]
+[project]
+name = "notion-prettify"
+version = "2.0.0"
+description = "Turn a Notion HTML export into a branded PDF. CLI and desktop GUI."
 readme = "README.md"
-include = ["templates/example", "templates/example-landscape"]
+requires-python = ">=3.12"
+dependencies = [
+    "PySide6>=6.8.0",
+    "pymupdf>=1.24.0",
+    "beautifulsoup4>=4.12.3",
+    "playwright>=1.42.0",
+    "jinja2>=3.1.3",
+    "colorama>=0.4.6",
+    "configargparse>=1.7",
+]
 
-[tool.poetry.dependencies]
-python = "^3.11"
-pymupdf = "^1.24.0"
-beautifulsoup4 = "^4.12.3"
-playwright = "^1.42.0"
-jinja2 = "^3.1.3"
-colorama = "^0.4.6"
-configargparse = "^1.7"
+[project.scripts]
+notion-prettify = "notion_prettify.core.main:main"
+notion-prettify-gui = "notion_prettify.gui.app:main"
 
-[tool.poetry.scripts]
-bs-notion-export-prettify = "bs_notion_export_prettify.main:main"
+[dependency-groups]
+dev = [
+    "mypy>=1.20.0",
+    "pytest>=9.0.2",
+    "ruff>=0.15.9",
+]
+build = [
+    "pyinstaller>=6.0",
+]
+
+[tool.ruff]
+src = ["src"]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+mypy_path = "src"
+strict = true
+python_version = "3.12"
+ignore_missing_imports = true
+sqlite_cache = false
+
+# The pipeline is untyped and was never type-checked; only the GUI is strict.
+[[tool.mypy.overrides]]
+module = "notion_prettify.core.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "notion_prettify.gui.widgets.*"
+disable_error_code = ["misc"]
+
+[[tool.mypy.overrides]]
+module = "notion_prettify.gui.app"
+disable_error_code = ["misc"]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/notion_prettify"]

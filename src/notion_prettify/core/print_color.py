@@ -1,6 +1,5 @@
 # Initialize Colorama (necessary on Windows)
-from colorama import init
-from colorama import Fore, Style
+from colorama import Fore, Style, init
 
 
 # Define wrapper functions for each color

@@ -82,7 +82,7 @@ def parse_args():
         "-v",
         "--version",
         action="version",
-        version=version("bs-notion-export-prettify"),
+        version=version("notion-prettify"),
     )
 
     # metadata

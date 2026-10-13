@@ -166,3 +166,5 @@ experiments
 .vscode
 templates/example/Template.docx
 templates/example/Template.pdf
+
+.ruff_cache/
